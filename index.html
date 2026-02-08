@@ -2,8 +2,7 @@
 <html>
 <head>
   <meta charset="UTF-8" />
-  <title>Supabase Student Test (Safe)</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <title>Supabase Student Test (Vercel)</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -93,7 +92,7 @@
   </style>
 </head>
 <body>
-  <h2>Supabase Student Test (Safe)</h2>
+  <h2>Supabase Student Test (Vercel)</h2>
 
   <input id="sid" placeholder="Student ID" />
   <input id="sname" placeholder="Student Name" />
@@ -107,14 +106,8 @@
   <pre id="log"></pre>
 
   <script>
-    // ✅ Only use your publishable key (safe for frontend)
-    const SUPABASE_URL = "https://opnkshbtnwlohvcppvgx.supabase.co";
-    const SUPABASE_ANON_KEY = "sb_publishable_hY2PZ-GU4_GvCmBXmvgqeA_ZcAwcj8X";
-
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     const logEl = document.getElementById("log");
-
-    const log = (msg) => {
+    const log = msg => {
       logEl.textContent += msg + "\n";
       logEl.scrollTop = logEl.scrollHeight;
       console.log(msg);
@@ -128,28 +121,28 @@
       const name = document.getElementById("sname").value.trim();
 
       if (!id || !name) {
-        log("⚠️ Enter both ID and Name");
         alert("Enter both ID and Name");
+        log("⚠️ Enter both ID and Name");
         btn.classList.remove("loading");
         return;
       }
 
       try {
-        log(`⏳ Inserting: ID=${id}, Name=${name}`);
-        const { data, error } = await supabase
-          .from("students")
-          .insert([{ id, name }]);
+        const res = await fetch("/api/saveStudent", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id, name })
+        });
 
-        if (error) {
-          log("❌ Insert error: " + error.message);
-          alert("Insert error: " + error.message);
-        } else {
-          log("✅ Inserted successfully: " + JSON.stringify(data));
-          alert("Inserted successfully!");
-        }
+        const data = await res.json();
+
+        if (!res.ok) throw new Error(data.error || "Unknown error");
+
+        alert("Inserted successfully!");
+        log("✅ Inserted: " + JSON.stringify(data.data));
       } catch (err) {
-        log("🔥 Unexpected error: " + err.message);
-        alert("Unexpected error: " + err.message);
+        alert("Insert error: " + err.message);
+        log("❌ " + err.message);
       }
 
       btn.classList.remove("loading");
@@ -159,37 +152,36 @@
       const btn = document.getElementById("exportBtn");
       btn.classList.add("loading");
 
-      const { data, error } = await supabase.from("students").select("*");
+      try {
+        const res = await fetch("/api/getStudents");
+        const data = await res.json();
 
-      if (error) {
-        log("❌ Fetch error: " + error.message);
-        alert("Fetch error: " + error.message);
-        btn.classList.remove("loading");
-        return;
+        if (!res.ok) throw new Error(data.error || "Unknown error");
+        if (!data.data || data.data.length === 0) {
+          alert("No data to export");
+          log("⚠️ No data to export");
+          btn.classList.remove("loading");
+          return;
+        }
+
+        let csv = "id,name\n";
+        data.data.forEach(row => csv += `${row.id},${row.name}\n`);
+
+        const blob = new Blob([csv], { type: "text/csv" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "students.csv";
+        a.click();
+        URL.revokeObjectURL(url);
+
+        alert(`CSV exported with ${data.data.length} rows`);
+        log(`📄 CSV exported with ${data.data.length} rows`);
+      } catch (err) {
+        alert("Fetch error: " + err.message);
+        log("❌ " + err.message);
       }
 
-      if (!data || data.length === 0) {
-        log("⚠️ No data to export");
-        alert("No data to export");
-        btn.classList.remove("loading");
-        return;
-      }
-
-      let csv = "id,name\n";
-      data.forEach(row => {
-        csv += `${row.id},${row.name}\n`;
-      });
-
-      const blob = new Blob([csv], { type: "text/csv" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "students.csv";
-      a.click();
-      URL.revokeObjectURL(url);
-
-      log(`📄 CSV exported with ${data.length} rows`);
-      alert(`CSV exported with ${data.length} rows`);
       btn.classList.remove("loading");
     }
 
@@ -198,242 +190,16 @@
       btn.classList.add("loading");
 
       try {
-        const { data, error } = await supabase.from("students").select("*");
+        const res = await fetch("/api/getStudents");
+        const data = await res.json();
 
-        if (error) {
-          log("❌ Test error: " + error.message);
-          alert("Test error: " + error.message);
-        } else {
-          log(`✅ Test successful! Found ${data.length} rows`);
-          alert(`Test successful! Found ${data.length} rows`);
-        }
+        if (!res.ok) throw new Error(data.error || "Unknown error");
+
+        alert(`Test successful! Found ${data.data.length} rows`);
+        log(`✅ Test successful! Found ${data.data.length} rows`);
       } catch (err) {
-        log("🔥 Unexpected error: " + err.message);
-        alert("Unexpected error: " + err.message);
-      }
-
-      btn.classList.remove("loading");
-    }
-  </script>
-</body>
-</html>  <pre id="log"></pre>
-
-  <script>
-    const SUPABASE_URL = "https://opnkshbtnwlohvcppvgx.supabase.co";
-    const SUPABASE_ANON_KEY = "sb_publishable_hY2PZ-GU4_GvCmBXmvgqeA_ZcAwcj8X";
-
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    const logEl = document.getElementById("log");
-
-    const log = (msg) => {
-      logEl.textContent += msg + "\n";
-      logEl.scrollTop = logEl.scrollHeight;
-      console.log(msg);
-    };
-
-    // ----------------- Functions -----------------
-    async function saveStudent() {
-      const btn = document.getElementById("saveBtn");
-      btn.classList.add("loading");
-
-      const id = document.getElementById("sid").value.trim();
-      const name = document.getElementById("sname").value.trim();
-
-      if (!id || !name) {
-        log("⚠️ Please enter both ID and Name");
-        alert("Please enter both ID and Name");
-        btn.classList.remove("loading");
-        return;
-      }
-
-      try {
-        log(`⏳ Attempting to insert: ID=${id}, Name=${name}`);
-        const { data, error } = await supabase
-          .from("students")
-          .insert([{ id, name }]);
-
-        if (error) {
-          log("❌ Insert error: " + error.message);
-          alert("Insert error: " + error.message);
-        } else {
-          log("✅ Inserted successfully: " + JSON.stringify(data));
-          alert("Inserted successfully!");
-        }
-      } catch (err) {
-        log("🔥 Unexpected error: " + err.message);
-        alert("Unexpected error: " + err.message);
-      }
-
-      btn.classList.remove("loading");
-    }
-
-    async function exportCSV() {
-      const btn = document.getElementById("exportBtn");
-      btn.classList.add("loading");
-
-      const { data, error } = await supabase.from("students").select("*");
-
-      if (error) {
-        log("❌ Fetch error: " + error.message);
-        alert("Fetch error: " + error.message);
-        btn.classList.remove("loading");
-        return;
-      }
-
-      if (!data || data.length === 0) {
-        log("⚠️ No data to export");
-        alert("No data to export");
-        btn.classList.remove("loading");
-        return;
-      }
-
-      let csv = "id,name\n";
-      data.forEach(row => {
-        csv += `${row.id},${row.name}\n`;
-      });
-
-      const blob = new Blob([csv], { type: "text/csv" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "students.csv";
-      a.click();
-      URL.revokeObjectURL(url);
-
-      log(`📄 CSV exported with ${data.length} rows`);
-      alert(`CSV exported with ${data.length} rows`);
-      btn.classList.remove("loading");
-    }
-
-    async function testSupabase() {
-      const btn = document.getElementById("testBtn");
-      btn.classList.add("loading");
-
-      try {
-        const { data, error } = await supabase.from("students").select("*");
-
-        if (error) {
-          log("❌ Test error: " + error.message);
-          alert("Test error: " + error.message);
-        } else {
-          log(`✅ Test successful! Found ${data.length} rows`);
-          alert(`Test successful! Found ${data.length} rows`);
-        }
-      } catch (err) {
-        log("🔥 Unexpected error: " + err.message);
-        alert("Unexpected error: " + err.message);
-      }
-
-      btn.classList.remove("loading");
-    }
-  </script>
-</body>
-</html>  <pre id="log"></pre>
-
-  <script>
-    const SUPABASE_URL = "https://opnkshbtnwlohvcppvgx.supabase.co";
-    const SUPABASE_ANON_KEY = "sb_publishable_hY2PZ-GU4_GvCmBXmvgqeA_ZcAwcj8X";
-
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    const logEl = document.getElementById("log");
-
-    const log = (msg) => {
-      logEl.textContent += msg + "\n";
-      logEl.scrollTop = logEl.scrollHeight;
-      console.log(msg);
-    };
-
-    async function saveStudent() {
-      const btn = document.getElementById("saveBtn");
-      btn.classList.add("loading");
-
-      const id = document.getElementById("sid").value.trim();
-      const name = document.getElementById("sname").value.trim();
-
-      if (!id || !name) {
-        log("⚠️ Please enter both ID and Name");
-        alert("Please enter both ID and Name");
-        btn.classList.remove("loading");
-        return;
-      }
-
-      try {
-        log("⏳ Attempting to insert: " + id + ", " + name);
-
-        const { data, error } = await supabase
-          .from("students")
-          .insert([{ id, name }]);
-
-        if (error) {
-          log("❌ Insert error: " + error.message);
-          alert("Insert error: " + error.message);
-        } else {
-          log("✅ Inserted successfully: " + JSON.stringify(data));
-          alert("Inserted successfully!");
-        }
-      } catch (err) {
-        log("🔥 Unexpected error: " + err.message);
-        alert("Unexpected error: " + err.message);
-      }
-
-      btn.classList.remove("loading");
-    }
-
-    async function exportCSV() {
-      const btn = document.getElementById("exportBtn");
-      btn.classList.add("loading");
-
-      const { data, error } = await supabase
-        .from("students")
-        .select("*");
-
-      if (error) {
-        log("❌ Fetch error: " + error.message);
-        alert("Fetch error: " + error.message);
-        btn.classList.remove("loading");
-        return;
-      }
-
-      if (!data || data.length === 0) {
-        log("⚠️ No data to export");
-        alert("No data to export");
-        btn.classList.remove("loading");
-        return;
-      }
-
-      let csv = "id,name\n";
-      data.forEach(row => {
-        csv += `${row.id},${row.name}\n`;
-      });
-
-      const blob = new Blob([csv], { type: "text/csv" });
-      const url = URL.createObjectURL(blob);
-
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "students.csv";
-      a.click();
-
-      URL.revokeObjectURL(url);
-
-      log("📄 CSV exported with " + data.length + " rows");
-      alert("CSV exported with " + data.length + " rows");
-
-      btn.classList.remove("loading");
-    }
-
-    async function testSupabase() {
-      const btn = document.getElementById("testBtn");
-      btn.classList.add("loading");
-
-      const { data, error } = await supabase.from("students").select("*");
-
-      if (error) {
-        log("❌ Test error: " + error.message);
-        alert("Test error: " + error.message);
-      } else {
-        log("✅ Test successful! Found " + data.length + " rows");
-        alert("Test successful! Found " + data.length + " rows");
+        alert("Test error: " + err.message);
+        log("❌ " + err.message);
       }
 
       btn.classList.remove("loading");
