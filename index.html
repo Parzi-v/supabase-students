@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Supabase Student Test</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <h2>Supabase Test</h2>
+
+  <input id="sid" placeholder="Student ID" />
+  <input id="sname" placeholder="Student Name" />
+  <br><br>
+  <button onclick="saveStudent()">Save to Supabase</button>
+  <button onclick="exportCSV()">Export CSV</button>
+
+  <pre id="log"></pre>
+
+  <script>
+    const SUPABASE_URL = "https://opnkshbtnwlohvcppvgx.supabase.co";
+    const SUPABASE_ANON_KEY = "sb_publishable_hY2PZ-GU4_GvCmBXmvgqeA_ZcAwcj8X";
+
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const log = (msg) => {
+      document.getElementById("log").textContent += msg + "\n";
+    };
+
+    async function saveStudent() {
+      const id = document.getElementById("sid").value.trim();
+      const name = document.getElementById("sname").value.trim();
+
+      if (!id || !name) {
+        log("⚠️ Please enter both ID and Name");
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("students")
+        .insert([{ id, name }]);
+
+      if (error) {
+        log("❌ Insert error: " + error.message);
+      } else {
+        log("✅ Inserted successfully");
+      }
+    }
+
+    async function exportCSV() {
+      const { data, error } = await supabase
+        .from("students")
+        .select("*");
+
+      if (error) {
+        log("❌ Fetch error: " + error.message);
+        return;
+      }
+
+      if (!data || data.length === 0) {
+        log("⚠️ No data to export");
+        return;
+      }
+
+      // Convert to CSV
+      let csv = "id,name\n";
+      data.forEach(row => {
+        csv += `${row.id},${row.name}\n`;
+      });
+
+      // Download
+      const blob = new Blob([csv], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "students.csv";
+      a.click();
+
+      URL.revokeObjectURL(url);
+
+      log("📄 CSV exported with " + data.length + " rows");
+    }
+  </script>
+</body>
+</html>
