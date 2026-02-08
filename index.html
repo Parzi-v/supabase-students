@@ -4,15 +4,107 @@
   <meta charset="UTF-8" />
   <title>Supabase Student Test</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 40px 20px;
+      background: #1e1e2f;
+      color: #fff;
+      min-height: 100vh;
+    }
+
+    h2 {
+      font-size: 2rem;
+      margin-bottom: 30px;
+      color: #0ff;
+      text-shadow: 0 0 10px #0ff;
+    }
+
+    input {
+      width: 300px;
+      padding: 15px;
+      font-size: 1.2rem;
+      margin: 10px 0;
+      border-radius: 10px;
+      border: none;
+      outline: none;
+      box-shadow: 0 0 10px #0ff55a inset;
+      background: #111;
+      color: #0ff;
+    }
+
+    .button-container {
+      margin: 15px 0;
+    }
+
+    button {
+      padding: 15px 30px;
+      font-size: 1.2rem;
+      margin: 10px;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      color: #111;
+      background: #0ff55a;
+      box-shadow: 0 0 15px #0ff55a;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.2s ease-in-out;
+    }
+
+    button:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 25px #0ff55a, 0 0 40px #0ff;
+    }
+
+    /* Loading glow effect */
+    button.loading::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(120deg, rgba(0,255,255,0.5), rgba(255,255,255,0.8), rgba(0,255,255,0.5));
+      animation: loadingAnim 1s linear infinite;
+      border-radius: 10px;
+    }
+
+    @keyframes loadingAnim {
+      0% { left: -100%; }
+      100% { left: 100%; }
+    }
+
+    #log {
+      margin-top: 30px;
+      width: 90%;
+      max-width: 600px;
+      padding: 20px;
+      background: #111;
+      border-radius: 10px;
+      min-height: 120px;
+      overflow-y: auto;
+      font-size: 1rem;
+      box-shadow: 0 0 10px #0ff inset;
+      white-space: pre-wrap;
+    }
+  </style>
 </head>
 <body>
-  <h2>Supabase Test</h2>
+  <h2>Supabase Student Test</h2>
 
   <input id="sid" placeholder="Student ID" />
   <input id="sname" placeholder="Student Name" />
-  <br><br>
-  <button onclick="saveStudent()">Save to Supabase</button>
-  <button onclick="exportCSV()">Export CSV</button>
+
+  <div class="button-container">
+    <button id="saveBtn" onclick="saveStudent()">Save to Supabase</button>
+    <button id="exportBtn" onclick="exportCSV()">Export CSV</button>
+    <button id="testBtn" onclick="testSupabase()">Test Connection</button>
+  </div>
 
   <pre id="log"></pre>
 
@@ -21,53 +113,77 @@
     const SUPABASE_ANON_KEY = "sb_publishable_hY2PZ-GU4_GvCmBXmvgqeA_ZcAwcj8X";
 
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const logEl = document.getElementById("log");
 
     const log = (msg) => {
-      document.getElementById("log").textContent += msg + "\n";
+      logEl.textContent += msg + "\n";
+      logEl.scrollTop = logEl.scrollHeight;
+      console.log(msg);
     };
 
     async function saveStudent() {
+      const btn = document.getElementById("saveBtn");
+      btn.classList.add("loading");
+
       const id = document.getElementById("sid").value.trim();
       const name = document.getElementById("sname").value.trim();
 
       if (!id || !name) {
         log("⚠️ Please enter both ID and Name");
+        alert("Please enter both ID and Name");
+        btn.classList.remove("loading");
         return;
       }
 
-      const { data, error } = await supabase
-        .from("students")
-        .insert([{ id, name }]);
+      try {
+        log("⏳ Attempting to insert: " + id + ", " + name);
 
-      if (error) {
-        log("❌ Insert error: " + error.message);
-      } else {
-        log("✅ Inserted successfully");
+        const { data, error } = await supabase
+          .from("students")
+          .insert([{ id, name }]);
+
+        if (error) {
+          log("❌ Insert error: " + error.message);
+          alert("Insert error: " + error.message);
+        } else {
+          log("✅ Inserted successfully: " + JSON.stringify(data));
+          alert("Inserted successfully!");
+        }
+      } catch (err) {
+        log("🔥 Unexpected error: " + err.message);
+        alert("Unexpected error: " + err.message);
       }
+
+      btn.classList.remove("loading");
     }
 
     async function exportCSV() {
+      const btn = document.getElementById("exportBtn");
+      btn.classList.add("loading");
+
       const { data, error } = await supabase
         .from("students")
         .select("*");
 
       if (error) {
         log("❌ Fetch error: " + error.message);
+        alert("Fetch error: " + error.message);
+        btn.classList.remove("loading");
         return;
       }
 
       if (!data || data.length === 0) {
         log("⚠️ No data to export");
+        alert("No data to export");
+        btn.classList.remove("loading");
         return;
       }
 
-      // Convert to CSV
       let csv = "id,name\n";
       data.forEach(row => {
         csv += `${row.id},${row.name}\n`;
       });
 
-      // Download
       const blob = new Blob([csv], { type: "text/csv" });
       const url = URL.createObjectURL(blob);
 
@@ -79,6 +195,26 @@
       URL.revokeObjectURL(url);
 
       log("📄 CSV exported with " + data.length + " rows");
+      alert("CSV exported with " + data.length + " rows");
+
+      btn.classList.remove("loading");
+    }
+
+    async function testSupabase() {
+      const btn = document.getElementById("testBtn");
+      btn.classList.add("loading");
+
+      const { data, error } = await supabase.from("students").select("*");
+
+      if (error) {
+        log("❌ Test error: " + error.message);
+        alert("Test error: " + error.message);
+      } else {
+        log("✅ Test successful! Found " + data.length + " rows");
+        alert("Test successful! Found " + data.length + " rows");
+      }
+
+      btn.classList.remove("loading");
     }
   </script>
 </body>
