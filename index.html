@@ -135,7 +135,6 @@
         });
 
         const data = await res.json();
-
         if (!res.ok) throw new Error(data.error || "Unknown error");
 
         alert("Inserted successfully!");
@@ -155,8 +154,8 @@
       try {
         const res = await fetch("/api/getStudents");
         const data = await res.json();
-
         if (!res.ok) throw new Error(data.error || "Unknown error");
+
         if (!data.data || data.data.length === 0) {
           alert("No data to export");
           log("⚠️ No data to export");
@@ -192,7 +191,6 @@
       try {
         const res = await fetch("/api/getStudents");
         const data = await res.json();
-
         if (!res.ok) throw new Error(data.error || "Unknown error");
 
         alert(`Test successful! Found ${data.data.length} rows`);
